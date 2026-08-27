@@ -14,8 +14,9 @@
 
 1. electron
 2. react
-3. whisper.cpp CLI 子进程接入，基于 large-v3-turbo 本地模型
-4. ffmpeg（字幕烧录合成、h265 预览转码兜底）
+3. typescript
+4. whisper.cpp CLI 子进程接入，基于 large-v3-turbo 本地模型
+5. ffmpeg（字幕烧录合成、h265 预览转码兜底）
 
 ## 模型分发
 
