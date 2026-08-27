@@ -1,0 +1,45 @@
+{
+  "name": "subtitle-studio",
+  "version": "0.1.0",
+  "description": "本地视频字幕工具：whisper.cpp 转写 + 智能断句 + 硬字幕烧录",
+  "main": "out/main/index.js",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:core": "tsx scripts/test-core.ts",
+    "dist": "electron-vite build && electron-builder"
+  },
+  "build": {
+    "appId": "com.subtitle.studio",
+    "productName": "Subtitle Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.video"
+    }
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "^7.3.6"
+  }
+}
