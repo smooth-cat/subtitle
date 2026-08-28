@@ -10,6 +10,9 @@ import {
   buildAiExport,
   parseAiImport,
   findActiveCue,
+  padCueText,
+  padLatinSpacing,
+  textWidth,
 } from '../src/shared/core'
 import { DEFAULT_ASSEMBLE, type Cue, type RawSegment } from '../src/shared/types'
 
@@ -129,6 +132,22 @@ const lines = wrapText('今天天气非常好啊，我们一起出去玩吧！',
 check('2 行时换行', lines.length === 2, lines)
 check('优先二级标点断行', lines.length === 2 && lines[0].endsWith('，'), lines)
 check('整词不截断', lines.join('|') === '今天天气非常好啊，|我们一起出去玩吧！', lines)
+check('空白不计入宽度（不占每行字数上限）', textWidth('a b') === textWidth('ab') && textWidth('中 中') === 2)
+check('拉丁半宽、汉字全宽', textWidth('中a') === 1.5)
+
+console.log('── pad spacing（盘古空格）──')
+check('汉字英文各补一侧', padLatinSpacing('使用GPT模型') === '使用 GPT 模型')
+check('数字两侧', padLatinSpacing('第3集更新了10次') === '第 3 集更新了 10 次')
+check('词组只在两端补空格（中间原空格保留、不加新）', padLatinSpacing('中文hello world 1中文') === '中文 hello world 1 中文')
+check('纯英文短语不动、不加首尾空格', padLatinSpacing('hello world 1') === 'hello world 1')
+check('小数/连字符/百分号整体不拆', padLatinSpacing('共3.5万') === '共 3.5 万' && padLatinSpacing('GPT-4发布') === 'GPT-4 发布' && padLatinSpacing('增长50%') === '增长 50%')
+check('c++/C# 等结尾符号整体', padLatinSpacing('用c++写的') === '用 c++ 写的' && padLatinSpacing('用C#开发') === '用 C# 开发')
+check('c++11 内部符号连跑整体不拆', padLatinSpacing('用c++11写') === '用 c++11 写')
+check('全角标点旁不加', padLatinSpacing('他说：hello') === '他说：hello' && padLatinSpacing('hello，大家好') === 'hello，大家好')
+check('已有空格不重复加', padLatinSpacing('使用 GPT 模型') === '使用 GPT 模型')
+check('幂等', padLatinSpacing(padLatinSpacing('使用OpenAI发布了GPT-4模型，用c++写的')) === padLatinSpacing('使用OpenAI发布了GPT-4模型，用c++写的'))
+check('整条按 \\n 分行各自处理', padCueText('第一行GPT\n第二行3D', true) === '第一行 GPT\n第二行 3D')
+check('开关关闭原样返回', padCueText('使用GPT模型', false) === '使用GPT模型')
 
 console.log('── srt ──')
 const srt = cuesToSrt(
@@ -144,6 +163,10 @@ const srt = cuesToSrt(
 )
 check('SRT 含时间轴', srt.includes(' --> ') && srt.includes('00:00:0'))
 check('SRT 时间格式', /\d{2}:\d{2}:\d{2},\d{3}/.test(srt))
+
+const padCue: Cue = { id: 'p', text: '使用GPT模型\n第二行3D', start: 0, end: 1000, tokenStart: -1, tokenEnd: -1, source: 'manual' }
+check('SRT 可选补空格', cuesToSrt([padCue], { padSpacing: true }).includes('使用 GPT 模型\n第二行 3D'), cuesToSrt([padCue], { padSpacing: true }))
+check('SRT 默认不补空格', cuesToSrt([padCue]).includes('使用GPT模型'))
 
 console.log('── AI 导出 / 导入 ──')
 const aiRaw: RawSegment[] = [

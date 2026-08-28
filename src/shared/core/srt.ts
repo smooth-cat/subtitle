@@ -1,4 +1,5 @@
 import type { Cue } from '../types'
+import { padCueText, trimInvisible } from './text'
 
 export function msToSrtTime(ms: number): string {
   const t = Math.max(0, Math.round(ms))
@@ -10,9 +11,16 @@ export function msToSrtTime(ms: number): string {
   return `${pad(h)}:${pad(m)}:${pad(s)},${pad(mss, 3)}`
 }
 
-export function cuesToSrt(cues: Cue[]): string {
+export interface SrtExportOptions {
+  padSpacing?: boolean // CJK 与英文/数字相邻处补半角空格（不改工程内原文本）
+}
+
+export function cuesToSrt(cues: Cue[], opts?: SrtExportOptions): string {
   return cues
     .filter((c) => c.text.trim())
-    .map((c, i) => `${i + 1}\n${msToSrtTime(c.start)} --> ${msToSrtTime(c.end)}\n${c.text.trim()}\n`)
+    .map(
+      (c, i) =>
+        `${i + 1}\n${msToSrtTime(c.start)} --> ${msToSrtTime(c.end)}\n${padCueText(trimInvisible(c.text), opts?.padSpacing ?? false)}\n`
+    )
     .join('\n')
 }

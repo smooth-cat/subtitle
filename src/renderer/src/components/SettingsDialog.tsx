@@ -241,6 +241,23 @@ export default function SettingsDialog({
                 }
               />
             </div>
+            <div className="field-row">
+              <label>英文/数字两侧加空格</label>
+              <input
+                type="checkbox"
+                checked={draft.assemble.padSpacing}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    assemble: { ...d.assemble, padSpacing: e.target.checked }
+                  }))
+                }
+              />
+            </div>
+          </div>
+          <div className="hint">
+            中英文混排时在汉字与英文/数字间自动补半角空格（词组只在两端补，如「使用 GPT 模型」）；
+            预览 / SRT 导出 / 烧录时实时生效，不改动字幕原文，空格也不计入每行字数上限。
           </div>
           <div className="hint">修改后可点击工具栏「重新断句」，用词级时间戳重新生成全部字幕条。</div>
         </section>

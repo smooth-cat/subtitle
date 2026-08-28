@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Cue } from '../../../shared/types'
 import { DEFAULT_SUBTITLE_CSS, normalizeSubtitleCss } from '../../../shared/subtitleStyle'
+import { padLatinSpacing } from '../../../shared/core'
 import StylePreviewStage from './StylePreviewStage'
 
 // 与烧录侧（cssBurn 渲染页）完全一致的 DOM 结构与样式注入方式：
@@ -20,6 +21,7 @@ export default function VideoPlayer({
   previewRatio,
   cssDraft,
   placeholderText,
+  padSpacing,
   fileName
 }: {
   src: string | null
@@ -34,6 +36,7 @@ export default function VideoPlayer({
   previewRatio: { w: number; h: number; label: string }
   cssDraft: string
   placeholderText: string
+  padSpacing: boolean
   fileName?: string
 }) {
   const rafRef = useRef(0)
@@ -81,7 +84,13 @@ export default function VideoPlayer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const lines = activeCue ? activeCue.text.split('\n').filter((l) => l.trim()) : []
+  // 预览与烧录一致：显示层实时补空格（不改 cue 原文本），空格不计每行字数上限
+  const lines = activeCue
+    ? activeCue.text
+        .split('\n')
+        .filter((l) => l.trim())
+        .map((l) => (padSpacing ? padLatinSpacing(l) : l))
+    : []
 
   return (
     <div className="player-pane">

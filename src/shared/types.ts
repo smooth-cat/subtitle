@@ -25,10 +25,11 @@ export interface Cue {
 }
 
 export interface AssembleSettings {
-  maxLineChars: number // 每行最大字数（CJK=1，拉丁≈0.5）
+  maxLineChars: number // 每行最大字数（CJK=1，拉丁≈0.5；空格不计）
   maxLines: number // 单条字幕最多行数
   maxCueDurationMs: number // 单条字幕最大时长
   endBufferMs: number // 句尾缓冲，不超过下一句开始
+  padSpacing: boolean // 显示层在 CJK 与英文/数字间补半角空格（预览/SRT/烧录实时生效，不改原文本）
 }
 
 export interface SubProject {
@@ -107,7 +108,8 @@ export const DEFAULT_ASSEMBLE: AssembleSettings = {
   maxLineChars: 16,
   maxLines: 2,
   maxCueDurationMs: 8000,
-  endBufferMs: 1000
+  endBufferMs: 1000,
+  padSpacing: true
 }
 
 export const DEFAULT_SETTINGS: Settings = {

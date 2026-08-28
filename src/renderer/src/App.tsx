@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Cue, JobEvent, JobKind, ModelStatus, RecentEntry, Settings, SubProject } from '../../shared/types'
 import type { CueDraft } from '../../shared/core/assemble'
-import { assembleCues, buildSentences, cuesToSrt, findActiveCue } from '../../shared/core'
+import { assembleCues, buildSentences, cuesToSrt, findActiveCue, padCueText } from '../../shared/core'
 import { aiWindowTimeRange } from '../../shared/core/ai'
 import { api, newJobId, fmtTime } from './lib'
 import Toolbar from './components/Toolbar'
@@ -340,12 +340,13 @@ export default function App() {
 
   // ─── 字幕样式预览占位（取最长的一句 cue，无 cue 时用默认样例）───
   const placeholderCueText = useMemo(() => {
+    const pad = settings?.assemble.padSpacing ?? false
     let best = ''
     for (const c of project?.cues ?? []) {
       if (c.text.trim().length > best.length) best = c.text
     }
-    return best || '字幕样式预览：这一行用来查看字号、描边与背景板效果 Sample 123'
-  }, [project])
+    return padCueText(best || '字幕样式预览：这一行用来查看字号、描边与背景板效果 Sample 123', pad)
+  }, [project, settings])
 
   // ─── 字幕样式保存 ────────────────────────────────────────────
   const saveCss = useCallback(
@@ -366,9 +367,9 @@ export default function App() {
       filters: [{ name: 'SRT 字幕', extensions: ['srt'] }]
     })
     if (!target) return
-    await api.writeTextFile(target, cuesToSrt(project.cues))
+    await api.writeTextFile(target, cuesToSrt(project.cues, { padSpacing: settings?.assemble.padSpacing ?? false }))
     toast(`已导出 SRT：${target}`)
-  }, [project, toast])
+  }, [project, settings, toast])
 
   const burn = useCallback(async () => {
     if (!project?.cues.length || !settings) return
@@ -380,7 +381,11 @@ export default function App() {
       await api.burn({
         jobId,
         videoPath: project.video.path,
-        cues: project.cues.map((c) => ({ text: c.text, start: c.start, end: c.end })),
+        cues: project.cues.map((c) => ({
+          text: padCueText(c.text, settings.assemble.padSpacing),
+          start: c.start,
+          end: c.end
+        })),
         css: settings.subtitleCss,
         outPath
       })
@@ -474,6 +479,7 @@ export default function App() {
           previewRatio={previewRatio}
           cssDraft={cssDraft ?? ''}
           placeholderText={placeholderCueText}
+          padSpacing={settings?.assemble.padSpacing ?? false}
           fileName={project ? (usingPreview ? `${project.video.name}（h264 预览副本）` : project.video.name) : undefined}
         />
         <SidePane
