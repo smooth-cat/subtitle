@@ -6,7 +6,8 @@ import { aiWindowTimeRange } from '../../shared/core/ai'
 import { api, newJobId, fmtTime } from './lib'
 import Toolbar from './components/Toolbar'
 import VideoPlayer from './components/VideoPlayer'
-import SubtitleList from './components/SubtitleList'
+import SidePane from './components/SidePane'
+import { DEFAULT_SUBTITLE_CSS, normalizeSubtitleCss } from '../../shared/subtitleStyle'
 import StatusBar from './components/StatusBar'
 import SettingsDialog from './components/SettingsDialog'
 import AiDialog from './components/AiDialog'
@@ -30,6 +31,9 @@ export default function App() {
   const [recents, setRecents] = useState<RecentEntry[]>([])
   const [modelStatus, setModelStatus] = useState<ModelStatus | undefined>()
   const [toastMsg, setToastMsg] = useState<{ kind: 'info' | 'error'; text: string } | null>(null)
+  const [styleTab, setStyleTab] = useState(false)
+  const [cssDraft, setCssDraft] = useState<string | null>(null)
+  const [previewRatio, setPreviewRatio] = useState({ w: 16, h: 9, label: '16:9' })
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const dirtyRef = useRef(false)
@@ -45,7 +49,10 @@ export default function App() {
 
   // ─── 初始化 ──────────────────────────────────────────────────
   useEffect(() => {
-    void api.getSettings().then(setSettings)
+    void api.getSettings().then((s) => {
+      setSettings(s)
+      setCssDraft((d) => d ?? normalizeSubtitleCss(s.subtitleCss))
+    })
     void api.validateModel().then(setModelStatus)
     void api.recentProjects().then(setRecents)
   }, [])
@@ -321,6 +328,26 @@ export default function App() {
     [mutateProject]
   )
 
+  // ─── 字幕样式预览占位（取最长的一句 cue，无 cue 时用默认样例）───
+  const placeholderCueText = useMemo(() => {
+    let best = ''
+    for (const c of project?.cues ?? []) {
+      if (c.text.trim().length > best.length) best = c.text
+    }
+    return best || '字幕样式预览：这一行用来查看字号、描边与背景板效果 Sample 123'
+  }, [project])
+
+  // ─── 字幕样式保存 ────────────────────────────────────────────
+  const saveCss = useCallback(
+    async (css: string) => {
+      if (!settings) return
+      const next = await api.setSettings({ ...settings, subtitleCss: css })
+      setSettings(next)
+      setCssDraft(css)
+    },
+    [settings]
+  )
+
   // ─── 导出 / 烧录 ─────────────────────────────────────────────
   const exportSrt = useCallback(async () => {
     if (!project?.cues.length) return
@@ -431,15 +458,28 @@ export default function App() {
           onLoadedMetadata={handleLoadedMetadata}
           transcoding={Object.values(jobs).some((j) => j.kind === 'transcode')}
           subtitleCss={settings?.subtitleCss ?? ''}
+          styleEditing={styleTab && !videoSrc}
+          previewRatio={previewRatio}
+          cssDraft={cssDraft ?? ''}
+          placeholderText={placeholderCueText}
           fileName={project ? (usingPreview ? `${project.video.name}（h264 预览副本）` : project.video.name) : undefined}
         />
-        <SubtitleList
+        <SidePane
           cues={project?.cues ?? []}
           currentTime={currentTime}
+          savedCss={settings?.subtitleCss ?? ''}
+          styleTab={styleTab}
+          onStyleTabChange={setStyleTab}
+          cssDraft={cssDraft ?? ''}
+          onCssDraftChange={setCssDraft}
+          previewRatio={previewRatio}
+          onPreviewRatioChange={setPreviewRatio}
           onSeek={seek}
           onUpdate={updateCue}
           onDelete={deleteCue}
           onAdd={addCue}
+          onSaveCss={saveCss}
+          notify={toast}
         />
       </div>
 

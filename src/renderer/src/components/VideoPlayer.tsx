@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Cue } from '../../../shared/types'
 import { DEFAULT_SUBTITLE_CSS, normalizeSubtitleCss } from '../../../shared/subtitleStyle'
+import StylePreviewStage from './StylePreviewStage'
 
 // 与烧录侧（cssBurn 渲染页）完全一致的 DOM 结构与样式注入方式：
 // #stage(视频内容矩形) > .cue-overlay > .cue-line*N
@@ -15,6 +16,10 @@ export default function VideoPlayer({
   onLoadedMetadata,
   transcoding,
   subtitleCss,
+  styleEditing,
+  previewRatio,
+  cssDraft,
+  placeholderText,
   fileName
 }: {
   src: string | null
@@ -25,6 +30,10 @@ export default function VideoPlayer({
   onLoadedMetadata: () => void
   transcoding: boolean
   subtitleCss: string
+  styleEditing: boolean
+  previewRatio: { w: number; h: number; label: string }
+  cssDraft: string
+  placeholderText: string
   fileName?: string
 }) {
   const rafRef = useRef(0)
@@ -93,6 +102,9 @@ export default function VideoPlayer({
               else v.pause()
             }}
           />
+        ) : styleEditing ? (
+          // 无视频 + 字幕样式编辑中：在播放器区域展示比例背景与占位字幕（草稿 CSS，iframe 隔离）
+          <StylePreviewStage ratio={previewRatio} css={cssDraft} placeholderText={placeholderText} />
         ) : (
           <div className="player-placeholder">
             <div className="ph-icon">🎬</div>

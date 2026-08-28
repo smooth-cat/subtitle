@@ -23,10 +23,10 @@ export const DEFAULT_SUBTITLE_CSS = `/* 字幕样式（CSS）。对象：.cue-ov
   background: rgba(0, 0, 0, 0.72);
   color: #ffffff;
   font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-  font-size: calc(var(--vh) * 0.0185);
+  font-size: calc(var(--vh) * 0.0285);
   font-weight: 500;
   line-height: 1.45;
-  padding: 0.12em 0.55em;
+  padding: 0.2em 0.55em;
   border-radius: calc(var(--vh) * 0.004);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }`
