@@ -182,13 +182,18 @@ body {
   align-items: center;
   justify-content: center;
   min-height: 0;
-  background: #000;
+  /* 非 纯黑 容器底：视频自带的黑边/暗场也能看清边界 */
+  background: #1a1b20;
 }
 
 .player-stage video {
   max-width: 100%;
   max-height: 100%;
   outline: none;
+  /* 视频内容矩形描边：letterbox 黑边与容器底色的分界线 */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 /* 字幕渲染层样式全部来自 shared/subtitleStyle.ts 的 CSS（预览/烧录共用） */
@@ -338,7 +343,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0d0e11;
+  background: #1a1b20;
 }
 
 .style-preview-stage iframe {

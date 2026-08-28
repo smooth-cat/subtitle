@@ -12,7 +12,7 @@ export const DEFAULT_SUBTITLE_CSS = `/* 字幕样式（CSS）。对象：.cue-ov
   position: absolute;
   left: 0;
   right: 0;
-  bottom: calc(var(--vh) * 0.06);
+  bottom: calc(var(--vh) * 0.001);
   display: flex;
   flex-direction: column;
   align-items: center;
