@@ -59,6 +59,8 @@ export interface Settings {
   modelPath?: string
   language: string
   assemble: AssembleSettings
+  // 字幕样式（CSS），预览与烧录共用同一份
+  subtitleCss: string
 }
 
 export interface ProbeResult {
@@ -110,5 +112,6 @@ export const DEFAULT_ASSEMBLE: AssembleSettings = {
 
 export const DEFAULT_SETTINGS: Settings = {
   language: 'zh',
-  assemble: { ...DEFAULT_ASSEMBLE }
+  assemble: { ...DEFAULT_ASSEMBLE },
+  subtitleCss: ''
 }

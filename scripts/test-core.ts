@@ -9,7 +9,7 @@ import {
   cuesToSrt,
   buildAiExport,
   parseAiImport,
-  findActiveCue
+  findActiveCue,
 } from '../src/shared/core'
 import { DEFAULT_ASSEMBLE, type Cue, type RawSegment } from '../src/shared/types'
 
@@ -204,6 +204,7 @@ check('间隙内桥接显示下一条（防空窗）', findActiveCue(activeCues,
 check('正常区间命中', findActiveCue(activeCues, 70000)?.id === 'b')
 check('时间轴之外为空', findActiveCue(activeCues, 999999) === null)
 check('前一条未结束前仍显示前一条', findActiveCue(activeCues, 64552)?.id === 'a')
+
 
 console.log(failed === 0 ? '\n全部通过 ✔' : `\n${failed} 项失败 ✘`)
 process.exit(failed === 0 ? 0 : 1)

@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { BinariesStatus, ModelStatus, Settings } from '../../../shared/types'
+import { DEFAULT_SUBTITLE_CSS, normalizeSubtitleCss } from '../../../shared/subtitleStyle'
 import { api } from '../lib'
 import { fmtSize } from '../lib'
 import Modal from './Modal'
@@ -31,6 +32,19 @@ export default function SettingsDialog({
   const [bins, setBins] = useState<BinariesStatus>({})
   const [dragOver, setDragOver] = useState(false)
 
+  // 字幕 CSS 基础校验：能被浏览器样式表解析才允许保存
+  const cssError = useMemo(() => {
+    const css = draft.subtitleCss
+    if (!css.trim()) return null
+    try {
+      const sheet = new CSSStyleSheet()
+      sheet.replaceSync(css)
+      return null
+    } catch (e) {
+      return String((e as Error).message ?? e)
+    }
+  }, [draft.subtitleCss])
+
   useEffect(() => {
     void api.validateModel().then(setModelStatus)
     void api.detectBinaries().then(setBins)
@@ -49,7 +63,7 @@ export default function SettingsDialog({
   }
 
   const save = async () => {
-    const next = await api.setSettings(draft)
+    const next = await api.setSettings({ ...draft, subtitleCss: normalizeSubtitleCss(draft.subtitleCss) })
     onSave(next)
     onClose()
   }
@@ -245,11 +259,40 @@ export default function SettingsDialog({
           <div className="hint">修改后可点击工具栏「重新断句」，用词级时间戳重新生成全部字幕条。</div>
         </section>
 
+        <section>
+          <h3>字幕样式（CSS，预览与烧录共用）</h3>
+          <textarea
+            className="css-area"
+            rows={12}
+            spellCheck={false}
+            value={draft.subtitleCss}
+            onChange={(e) => setDraft((d) => ({ ...d, subtitleCss: e.target.value }))}
+          />
+          {cssError ? (
+            <div className="hint warn-hint">CSS 无法解析：{cssError}</div>
+          ) : (
+            <div className="hint">
+              作用对象：<code>.cue-overlay</code>（字幕容器）、<code>.cue-line</code>（每行字幕）。
+              可用变量：<code>var(--vh)</code> / <code>var(--vw)</code>
+              为视频内容高度/宽度（px），字号等请基于它们换算以保证预览与烧录一致（默认样式已示范）。
+              仅支持静态样式。
+            </div>
+          )}
+          <div className="btn-row">
+            <button
+              className="btn small"
+              onClick={() => setDraft((d) => ({ ...d, subtitleCss: DEFAULT_SUBTITLE_CSS }))}
+            >
+              恢复默认样式
+            </button>
+          </div>
+        </section>
+
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>
             取消
           </button>
-          <button className="btn primary" onClick={() => void save()}>
+          <button className="btn primary" disabled={!!cssError} onClick={() => void save()}>
             保存
           </button>
         </div>

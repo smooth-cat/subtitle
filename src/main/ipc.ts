@@ -14,9 +14,10 @@ import { DEFAULT_SETTINGS } from '../shared/types'
 import { cacheDir, loadSettings, saveSettings } from './settings'
 import { loadProject, projectIdForVideo, listRecent, saveProject } from './projects'
 import { resolveFfmpeg, resolveFfprobe, resolveWhisper } from './binaries'
-import { probeVideo, transcodePreview, burnSubtitles } from './ffmpeg'
+import { probeVideo, transcodePreview } from './ffmpeg'
+import { burnWithCss } from './cssBurn'
 import { transcribeVideo } from './whisper'
-import { cancelJob } from './jobs'
+import { cancelJob, isJobCancelled } from './jobs'
 import { mediaServerUrl } from './protocol'
 
 const execFileAsync = promisify(execFile)
@@ -231,38 +232,38 @@ export function registerIpc(): void {
   ipcMain.handle('burn:run', async (_e, req: {
     jobId: string
     videoPath: string
-    srtContent: string
+    cues: Array<{ text: string; start: number; end: number }>
+    css: string
     outPath: string
-    fontSize: number
   }) => {
     const s = loadSettings()
     const probe = await probeVideo(req.videoPath, s)
-    const workDir = cacheDir('burn')
-    const srtPath = path.join(workDir, `subs-${req.jobId}.srt`)
-    fs.writeFileSync(srtPath, req.srtContent, 'utf8')
-    const outPath = req.outPath
+    if (!probe.width || !probe.height) throw new Error('无法获取视频分辨率，无法烧录')
+    const workDir = cacheDir('burn', req.jobId)
     try {
-      await burnSubtitles({
+      return await burnWithCss({
         jobId: req.jobId,
         videoPath: req.videoPath,
-        srtPath: path.basename(srtPath),
+        cues: req.cues,
+        css: req.css,
+        width: probe.width,
+        height: probe.height,
         workDir,
-        outPath,
+        outPath: req.outPath,
         ffmpegPath: s.ffmpegPath,
         durationSec: probe.durationSec,
-        fontSize: req.fontSize,
-        onProgress: (percent) =>
+        onProgress: (percent, message) =>
           BrowserWindow.getAllWindows()[0]?.webContents.send('job:event', {
             jobId: req.jobId,
             kind: 'burn',
             percent,
-            message: '正在烧录字幕…'
-          })
+            message: message ?? '正在烧录字幕…'
+          }),
+        isCancelled: () => isJobCancelled(req.jobId)
       })
-      return outPath
     } finally {
       try {
-        fs.rmSync(srtPath, { force: true })
+        fs.rmSync(workDir, { recursive: true, force: true })
       } catch {
         // ignore
       }

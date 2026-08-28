@@ -51,9 +51,9 @@ export interface Api {
   burn(req: {
     jobId: string
     videoPath: string
-    srtContent: string
+    cues: Array<{ text: string; start: number; end: number }>
+    css: string
     outPath: string
-    fontSize: number
   }): Promise<string>
   cancelJob(jobId: string): Promise<boolean>
 

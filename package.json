@@ -6,7 +6,7 @@
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "electron-vite build",
+    "build": "electron-vite build && esbuild src/main/dev/burnHarness.ts --bundle --platform=node --external:electron --format=cjs --outfile=out/harness/burn-harness.js",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test:core": "tsx scripts/test-core.ts",

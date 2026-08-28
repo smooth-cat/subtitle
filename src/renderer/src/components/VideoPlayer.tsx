@@ -1,7 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 import type { Cue } from '../../../shared/types'
+import { DEFAULT_SUBTITLE_CSS, normalizeSubtitleCss } from '../../../shared/subtitleStyle'
 
+// 与烧录侧（cssBurn 渲染页）完全一致的 DOM 结构与样式注入方式：
+// #stage(视频内容矩形) > .cue-overlay > .cue-line*N
+// --vh/--vw 为视频内容高度/宽度(px)，用户 CSS 与默认 CSS 均基于它做分辨率无关换算。
 export default function VideoPlayer({
   src,
   videoRef,
@@ -10,6 +14,7 @@ export default function VideoPlayer({
   onError,
   onLoadedMetadata,
   transcoding,
+  subtitleCss,
   fileName
 }: {
   src: string | null
@@ -19,9 +24,42 @@ export default function VideoPlayer({
   onError: () => void
   onLoadedMetadata: () => void
   transcoding: boolean
+  subtitleCss: string
   fileName?: string
 }) {
   const rafRef = useRef(0)
+  const stageRef = useRef<HTMLDivElement>(null)
+  // 视频画面在舞台内的实际显示矩形（object-fit: contain 去黑边计算）
+  const [contentRect, setContentRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null)
+
+  const updateRect = () => {
+    const v = videoRef.current
+    const st = stageRef.current
+    if (!v || !st || !v.videoWidth || !v.videoHeight) {
+      setContentRect(null)
+      return
+    }
+    const sw = st.clientWidth
+    const sh = st.clientHeight
+    const scale = Math.min(sw / v.videoWidth, sh / v.videoHeight)
+    const w = v.videoWidth * scale
+    const h = v.videoHeight * scale
+    setContentRect({ x: (sw - w) / 2, y: (sh - h) / 2, w, h })
+  }
+
+  useEffect(() => {
+    const st = stageRef.current
+    const v = videoRef.current
+    const ro = new ResizeObserver(() => updateRect())
+    if (st) ro.observe(st)
+    window.addEventListener('resize', updateRect)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', updateRect)
+      void v
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [src])
 
   useEffect(() => {
     const tick = () => {
@@ -38,14 +76,17 @@ export default function VideoPlayer({
 
   return (
     <div className="player-pane">
-      <div className="player-stage">
+      <div className="player-stage" ref={stageRef}>
         {src ? (
           <video
             ref={videoRef}
             src={src}
             onTimeUpdate={(e) => onTime(e.currentTarget.currentTime * 1000)}
             onError={onError}
-            onLoadedMetadata={onLoadedMetadata}
+            onLoadedMetadata={() => {
+              updateRect()
+              onLoadedMetadata()
+            }}
             onClick={(e) => {
               const v = e.currentTarget
               if (v.paused) void v.play()
@@ -59,13 +100,34 @@ export default function VideoPlayer({
             <div className="ph-sub">支持 h264 / h265（h265 无法硬解时自动转码预览副本）</div>
           </div>
         )}
-        {lines.length > 0 && (
-          <div className="cue-overlay">
-            {lines.map((l, i) => (
-              <div key={i} className="cue-overlay-line">
-                {l}
+        {src && contentRect && (
+          <div
+            className="subtitle-render-root"
+            style={
+              {
+                position: 'absolute',
+                left: contentRect.x,
+                top: contentRect.y,
+                width: contentRect.w,
+                height: contentRect.h,
+                overflow: 'hidden',
+                pointerEvents: 'none',
+                background: 'transparent',
+                '--vh': `${contentRect.h}px`,
+                '--vw': `${contentRect.w}px`
+              } as React.CSSProperties
+            }
+          >
+            <style>{DEFAULT_SUBTITLE_CSS + '\n' + normalizeSubtitleCss(subtitleCss)}</style>
+            {lines.length > 0 && (
+              <div className="cue-overlay">
+                {lines.map((l, i) => (
+                  <div key={i} className="cue-line">
+                    {l}
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
         {transcoding && (

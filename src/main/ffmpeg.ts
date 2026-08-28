@@ -77,7 +77,7 @@ export async function probeVideo(videoPath: string, bins: BinPaths = {}): Promis
 
 // ─── 进度解析（ffmpeg -progress pipe:1 输出 out_time_ms=微秒）──────
 
-function makeProgressParser(durationSec: number, cb: (percent: number) => void) {
+export function makeProgressParser(durationSec: number, cb: (percent: number) => void) {
   let buf = ''
   return (chunk: string) => {
     buf += chunk
@@ -191,58 +191,4 @@ export async function transcodePreview(
     onStdout: makeProgressParser(durationSec, onProgress)
   })
   return outPath
-}
-
-// ─── 硬字幕烧录 ──────────────────────────────────────────────────
-
-export interface BurnOptions {
-  jobId: string
-  videoPath: string
-  srtPath: string // 与 ffmpeg 进程同目录的相对文件名
-  workDir: string
-  outPath: string
-  ffmpegPath?: string
-  durationSec: number
-  fontSize: number
-  onProgress: (percent: number) => void
-}
-
-function escapeStyle(s: string): string {
-  return s.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'")
-}
-
-export async function burnSubtitles(opts: BurnOptions): Promise<string> {
-  const bin = await resolveFfmpeg(opts.ffmpegPath)
-  if (!bin) throw new Error('未找到 ffmpeg，请安装 ffmpeg 或在设置中指定路径')
-  const style = `FontName=PingFang SC,FontSize=${opts.fontSize},Outline=1,Shadow=0,MarginV=30,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1`
-  const vf = `subtitles=filename=${escapeStyle(opts.srtPath)}:force_style='${escapeStyle(style)}'`
-  await runProcess(opts.jobId, 'burn', bin, [
-    '-y',
-    '-i',
-    opts.videoPath,
-    '-vf',
-    vf,
-    '-c:v',
-    'libx264',
-    '-preset',
-    'medium',
-    '-crf',
-    '20',
-    '-pix_fmt',
-    'yuv420p',
-    '-c:a',
-    'aac',
-    '-b:a',
-    '192k',
-    '-movflags',
-    '+faststart',
-    '-progress',
-    'pipe:1',
-    '-nostats',
-    opts.outPath
-  ], {
-    cwd: opts.workDir,
-    onStdout: makeProgressParser(opts.durationSec, opts.onProgress)
-  })
-  return opts.outPath
 }

@@ -13,7 +13,9 @@
   - 断点时间取真实词级时间戳；字幕条结束 = 句尾 + 1s 缓冲，不超过下一句开始
 - **换行**：单条最多 2 行、每行 ≤16 字（可配置）；换行点必须落在词边界，优先二级标点
 - **手动编辑**：字幕条纯增删改（新增 / 编辑文本 / 修改时间 / 删除）
-- **导出**：SRT；硬字幕烧录（ffmpeg subtitles 滤镜，输出新视频）
+- **字幕样式（CSS）**：在设置中以 CSS 设计字幕外观（作用对象 `.cue-overlay` / `.cue-line`，变量 `--vh`/`--vw` 为视频内容高宽），默认白字+圆角黑色半透明板；**预览与烧录使用同一份 CSS**，所见即所得
+- **烧录原理**：Electron 离屏窗口按视频原始分辨率逐条渲染字幕（DOM+CSS，透明 PNG，内容 bbox 裁剪）→ ffmpeg N 个 `overlay + enable=between(t,start,end)`（毫秒级精确时间窗，单次编码）
+- **导出**：SRT；硬字幕烧录（上述 CSS 管线），完成后自动在 Finder 中显示
 - **工程文件**：JSON 保存全部词级时间戳与断句元数据，由应用数据目录统一管理，支持最近打开列表、自动保存（⌘S 手动保存）
 - **AI 断句兜底**：导出待断句文本（`#序号 文本`，支持时间段分块导出）+ 一键复制提示词模板；粘贴回结果后逐字校验（不一致拒绝并高亮差异），断点偏移映射回词边界（词内断点自动吸附并提示），再用词级时间戳重建时间轴
 
@@ -68,13 +70,16 @@ src/
 │       ├── tokens.ts      # whisper json-full → 词级 token（真实时间戳优先，插值兜底）
 │       ├── sentence.ts    # 跨段合并成句（句末标点）
 │       ├── assemble.ts    # 字幕条组装 + 词边界换行
+│       ├── cue.ts         # 播放位置 → 当前字幕（浮点容差）
 │       ├── srt.ts         # SRT 导出
 │       └── ai.ts          # AI 断句：导出文本 / 粘贴导入逐字校验
 ├── main/              # Electron 主进程
-│   ├── protocol.ts    # media:// 流式协议（Range 支持）
-│   ├── ffmpeg.ts      # 探测 / 抽 wav / 预览转码 / 烧录（进度解析）
+│   ├── mediaServer.ts # 内嵌 localhost 媒体服务（标准 HTTP Range，seek 稳定）
+│   ├── ffmpeg.ts      # 探测 / 抽 wav / 预览转码（进度解析）
+│   ├── cssBurn.ts     # CSS 字幕烧录：离屏渲染 PNG + overlay/enable 单次编码
 │   ├── whisper.ts     # whisper.cpp CLI 子进程（json-full）
 │   ├── projects.ts    # 工程文件 + 最近列表
+│   ├── dev/burnHarness.ts # 烧录管线 CLI 验证工具
 │   ├── settings.ts    # 设置与缓存目录
 │   ├── binaries.ts    # whisper-cli / ffmpeg 自动探测
 │   └── ipc.ts         # IPC handlers

@@ -5,6 +5,7 @@ import { BrowserWindow } from 'electron'
 import type { JobEvent, JobKind } from '../shared/types'
 
 const jobs = new Map<string, ChildProcess>()
+const cancelled = new Set<string>()
 
 export function sendJob(event: JobEvent): void {
   const win = BrowserWindow.getAllWindows()[0]
@@ -22,6 +23,7 @@ export function registerJob(jobId: string, child: ChildProcess): void {
 }
 
 export function cancelJob(jobId: string): boolean {
+  cancelled.add(jobId)
   const child = jobs.get(jobId)
   if (!child) return false
   jobs.delete(jobId)
@@ -46,6 +48,11 @@ export function cancelAllJobs(): void {
 
 export function unregisterJob(jobId: string): void {
   jobs.delete(jobId)
+  cancelled.delete(jobId)
+}
+
+export function isJobCancelled(jobId: string): boolean {
+  return cancelled.has(jobId)
 }
 
 // 子进程包装：收集 stderr 尾部日志用于报错，stdout 交给回调（ffmpeg -progress）

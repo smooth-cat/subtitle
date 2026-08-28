@@ -2,6 +2,7 @@ import { app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 import { DEFAULT_ASSEMBLE, DEFAULT_SETTINGS, type Settings } from '../shared/types'
+import { normalizeSubtitleCss } from '../shared/subtitleStyle'
 
 export function userDataDir(): string {
   return app.getPath('userData')
@@ -32,10 +33,11 @@ export function loadSettings(): Settings {
     return {
       ...DEFAULT_SETTINGS,
       ...raw,
-      assemble: { ...DEFAULT_ASSEMBLE, ...(raw.assemble ?? {}) }
+      assemble: { ...DEFAULT_ASSEMBLE, ...(raw.assemble ?? {}) },
+      subtitleCss: normalizeSubtitleCss(raw.subtitleCss)
     }
   } catch {
-    return { ...DEFAULT_SETTINGS, assemble: { ...DEFAULT_ASSEMBLE } }
+    return { ...DEFAULT_SETTINGS, assemble: { ...DEFAULT_ASSEMBLE }, subtitleCss: normalizeSubtitleCss(undefined) }
   }
 }
 

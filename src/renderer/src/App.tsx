@@ -334,7 +334,7 @@ export default function App() {
   }, [project, toast])
 
   const burn = useCallback(async () => {
-    if (!project?.cues.length) return
+    if (!project?.cues.length || !settings) return
     const outPath = await api.saveDirDialog({ defaultName: `${project.name}.字幕版.mp4` })
     if (!outPath) return
     const jobId = newJobId()
@@ -343,9 +343,9 @@ export default function App() {
       await api.burn({
         jobId,
         videoPath: project.video.path,
-        srtContent: cuesToSrt(project.cues),
-        outPath,
-        fontSize: 20
+        cues: project.cues.map((c) => ({ text: c.text, start: c.start, end: c.end })),
+        css: settings.subtitleCss,
+        outPath
       })
       toast(`烧录完成：${outPath}`)
       void api.showInFolder(outPath)
@@ -354,7 +354,7 @@ export default function App() {
     } finally {
       endJob(jobId)
     }
-  }, [project, beginJob, endJob, toast])
+  }, [project, settings, beginJob, endJob, toast])
 
   // ─── 菜单 / 快捷键 ───────────────────────────────────────────
   useEffect(() => {
@@ -430,6 +430,7 @@ export default function App() {
           onError={handleVideoError}
           onLoadedMetadata={handleLoadedMetadata}
           transcoding={Object.values(jobs).some((j) => j.kind === 'transcode')}
+          subtitleCss={settings?.subtitleCss ?? ''}
           fileName={project ? (usingPreview ? `${project.video.name}（h264 预览副本）` : project.video.name) : undefined}
         />
         <SubtitleList
