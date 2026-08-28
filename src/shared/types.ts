@@ -53,6 +53,12 @@ export interface RecentEntry {
   updatedAt: string
 }
 
+// 逐帧步进帧数（±n 帧，控制栏内可编辑并持久化）
+export interface FrameStepSettings {
+  backward: number // −n 帧
+  forward: number // +n 帧
+}
+
 export interface Settings {
   whisperPath?: string
   ffmpegPath?: string
@@ -62,6 +68,7 @@ export interface Settings {
   assemble: AssembleSettings
   // 字幕样式（CSS），预览与烧录共用同一份
   subtitleCss: string
+  frameStep: FrameStepSettings
 }
 
 export interface ProbeResult {
@@ -70,6 +77,7 @@ export interface ProbeResult {
   audioCodec?: string
   width?: number
   height?: number
+  fps?: number // 视频帧率（逐帧步进步长），探测失败时缺省
 }
 
 export type JobKind = 'wav' | 'transcode' | 'transcribe' | 'burn'
@@ -115,5 +123,6 @@ export const DEFAULT_ASSEMBLE: AssembleSettings = {
 export const DEFAULT_SETTINGS: Settings = {
   language: 'zh',
   assemble: { ...DEFAULT_ASSEMBLE },
-  subtitleCss: ''
+  subtitleCss: '',
+  frameStep: { backward: 10, forward: 10 }
 }

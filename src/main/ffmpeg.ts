@@ -62,16 +62,28 @@ export async function probeVideo(videoPath: string, bins: BinPaths = {}): Promis
       codec_name?: string
       width?: number
       height?: number
+      avg_frame_rate?: string
+      r_frame_rate?: string
     }>
   }
   const v = info.streams?.find((s) => s.codec_type === 'video')
   const a = info.streams?.find((s) => s.codec_type === 'audio')
+  // 帧率：avg_frame_rate 优先（内容真实帧率），异常时退 r_frame_rate；"30000/1001" 分数形式
+  const parseRate = (s: string | undefined): number => {
+    if (!s) return 0
+    const [num, den] = s.split('/').map((x) => parseFloat(x))
+    if (!num || !Number.isFinite(num)) return 0
+    const fps = den ? num / den : num
+    return Number.isFinite(fps) && fps > 0 && fps <= 240 ? fps : 0
+  }
+  const fps = parseRate(v?.avg_frame_rate) || parseRate(v?.r_frame_rate) || undefined
   return {
     durationSec: parseFloat(info.format?.duration ?? '0') || 0,
     videoCodec: v?.codec_name,
     audioCodec: a?.codec_name,
     width: v?.width,
-    height: v?.height
+    height: v?.height,
+    fps
   }
 }
 

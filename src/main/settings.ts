@@ -4,6 +4,8 @@ import path from 'node:path'
 import { DEFAULT_ASSEMBLE, DEFAULT_SETTINGS, type Settings } from '../shared/types'
 import { normalizeSubtitleCss } from '../shared/subtitleStyle'
 
+const DEFAULT_FRAME_STEP = DEFAULT_SETTINGS.frameStep
+
 export function userDataDir(): string {
   return app.getPath('userData')
 }
@@ -34,10 +36,16 @@ export function loadSettings(): Settings {
       ...DEFAULT_SETTINGS,
       ...raw,
       assemble: { ...DEFAULT_ASSEMBLE, ...(raw.assemble ?? {}) },
-      subtitleCss: normalizeSubtitleCss(raw.subtitleCss)
+      subtitleCss: normalizeSubtitleCss(raw.subtitleCss),
+      frameStep: { ...DEFAULT_FRAME_STEP, ...(raw.frameStep ?? {}) }
     }
   } catch {
-    return { ...DEFAULT_SETTINGS, assemble: { ...DEFAULT_ASSEMBLE }, subtitleCss: normalizeSubtitleCss(undefined) }
+    return {
+      ...DEFAULT_SETTINGS,
+      assemble: { ...DEFAULT_ASSEMBLE },
+      subtitleCss: normalizeSubtitleCss(undefined),
+      frameStep: { ...DEFAULT_FRAME_STEP }
+    }
   }
 }
 

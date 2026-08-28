@@ -301,11 +301,15 @@ body {
   min-height: 0;
   /* 非 纯黑 容器底：视频自带的黑边/暗场也能看清边界 */
   background: #1a1b20;
+  /* 控制栏条带高度（与 VideoPlayer 的 CTRL_BAR_H 保持一致） */
+  --ctrl-h: 36px;
 }
 
 .player-stage video {
   max-width: 100%;
-  max-height: 100%;
+  /* 底部为控制栏预留条带：视频画面永不与控制栏重叠 */
+  max-height: calc(100% - var(--ctrl-h));
+  margin-bottom: var(--ctrl-h);
   outline: none;
   /* 视频内容矩形描边：letterbox 黑边与容器底色的分界线 */
   box-shadow:
@@ -351,6 +355,193 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ─── 视频控制栏：贴视频下边缘、与视频同宽（定位由 contentRect 计算）─── */
+.video-controls {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--ctrl-h);
+  padding: 0 10px;
+  background: rgba(13, 14, 17, 0.88);
+  border: 1px solid var(--border);
+  border-radius: 0 0 3px 3px;
+}
+
+.vc-time {
+  flex: none;
+  min-width: 52px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.vc-track {
+  position: relative;
+  flex: 1;
+  height: 18px; /* 命中区高度，轨道居中绘制 */
+  cursor: pointer;
+}
+
+.vc-track::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 2px;
+}
+
+.vc-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.vc-thumb {
+  position: absolute;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.vc-btn {
+  flex: none;
+  padding: 3px 9px;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.vc-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.vc-btn:active {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+/* ±n 帧步进簇：方向按钮 + 可编辑帧数（两个数字各自持久化） */
+.vc-step {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vc-dir {
+  padding: 3px 8px;
+}
+
+.vc-step-input {
+  width: 36px;
+  padding: 3px 2px;
+  font-size: 11px;
+  text-align: center;
+  color: var(--text);
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.vc-step-input::-webkit-outer-spin-button,
+.vc-step-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.vc-step-input:focus {
+  border-color: var(--accent);
+}
+
+.vc-unit {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin: 0 4px;
+}
+
+/* 暂停时视频内容区左下角的「继续播放」悬浮按钮 */
+.resume-btn {
+  position: absolute;
+  z-index: 6;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 3px; /* 三角形视觉居中 */
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.resume-btn:hover {
+  background: rgba(0, 0, 0, 0.82);
+  transform: scale(1.06);
+}
+
+/* 恢复播放时的播放图标闪现（缩放淡出后消失） */
+.play-flash {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.play-flash-icon {
+  font-size: 64px;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.6);
+  padding-left: 8px;
+  animation: play-flash 0.55s ease-out forwards;
+}
+
+@keyframes play-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
 }
 
 /* ─── 字幕列表 ─── */

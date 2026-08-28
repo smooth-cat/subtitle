@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Cue, JobEvent, JobKind, ModelStatus, RecentEntry, Settings, SubProject } from '../../shared/types'
+import { DEFAULT_SETTINGS } from '../../shared/types'
 import type { CueDraft } from '../../shared/core/assemble'
 import { assembleCues, buildSentences, cuesToSrt, findActiveCue, padCueText } from '../../shared/core'
 import { aiWindowTimeRange } from '../../shared/core/ai'
@@ -34,6 +35,7 @@ export default function App() {
   const [styleTab, setStyleTab] = useState(false)
   const [cssDraft, setCssDraft] = useState<string | null>(null)
   const [previewRatio, setPreviewRatio] = useState({ w: 16, h: 9, label: '16:9' })
+  const [fps, setFps] = useState(30)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const dirtyRef = useRef(false)
@@ -123,6 +125,11 @@ export default function App() {
         setProject(loaded)
         setVideoSrc(await api.mediaUrl(loaded.video.path))
         setCurrentTime(0)
+        // 探测真实帧率（逐帧步进步长），失败兜底 30fps
+        void api
+          .probeVideo(p)
+          .then((r) => setFps(r.fps && r.fps > 0 ? r.fps : 30))
+          .catch(() => setFps(30))
         void api.recentProjects().then(setRecents)
         toast(`已打开：${loaded.video.name}（工程 ${loaded.cues.length} 条字幕）`)
       } catch (err) {
@@ -407,29 +414,6 @@ export default function App() {
     return off
   }, [openVideoDialog, saveNow])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
-      const v = videoRef.current
-      if (!v) return
-      if (e.code === 'Space') {
-        e.preventDefault()
-        if (v.paused) void v.play()
-        else v.pause()
-      } else if (e.code === 'ArrowLeft') {
-        v.currentTime = Math.max(0, v.currentTime - 5)
-      } else if (e.code === 'ArrowRight') {
-        v.currentTime = Math.min(v.duration || Infinity, v.currentTime + 5)
-      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault()
-        saveNow()
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [saveNow])
-
   // ─── 派生状态 ────────────────────────────────────────────────
   const activeCue = useMemo(
     () => (project ? findActiveCue(project.cues, currentTime) : null),
@@ -442,6 +426,68 @@ export default function App() {
     if (v) v.currentTime = ms / 1000
     setCurrentTime(Math.round(ms))
   }, [])
+
+  // 逐帧步进：先自动暂停，步长 = n/fps（n 为可编辑的步进帧数，兜底 1）；显式 setCurrentTime 同步字幕
+  const frameStep = settings?.frameStep ?? DEFAULT_SETTINGS.frameStep
+  const stepFrame = useCallback(
+    (dir: 1 | -1) => {
+      const v = videoRef.current
+      if (!v || !v.duration || !Number.isFinite(v.duration)) return
+      v.pause()
+      const n = Math.max(1, dir === 1 ? frameStep.forward : frameStep.backward)
+      const step = (1 / (fps > 0 ? fps : 30)) * n
+      const next = Math.min(Math.max(0, v.currentTime + dir * step), v.duration)
+      v.currentTime = next
+      setCurrentTime(Math.round(next * 1000))
+    },
+    [fps, frameStep]
+  )
+
+  // 修改 ±n 帧步进帧数（控制栏内编辑，立即持久化到 settings.json）
+  const setFrameStep = useCallback(
+    (dir: 1 | -1, value: number) => {
+      if (!settings) return
+      const n = Math.max(1, Math.min(100, Math.round(value) || 1))
+      const cur = settings.frameStep ?? DEFAULT_SETTINGS.frameStep
+      const key = dir === 1 ? ('forward' as const) : ('backward' as const)
+      if (cur[key] === n) return
+      const next = { ...settings, frameStep: { ...cur, [key]: n } }
+      void api.setSettings(next).then(setSettings)
+    },
+    [settings]
+  )
+
+  // ─── 播放快捷键 ──────────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
+      const v = videoRef.current
+      if (!v) return
+      if (e.code === 'Space') {
+        e.preventDefault()
+        if (v.paused) void v.play()
+        else v.pause()
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault()
+        seek(Math.max(0, v.currentTime * 1000 - 5000))
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault()
+        seek(v.currentTime * 1000 + 5000)
+      } else if (e.code === 'Comma') {
+        e.preventDefault()
+        stepFrame(-1)
+      } else if (e.code === 'Period') {
+        e.preventDefault()
+        stepFrame(1)
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        saveNow()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [saveNow, seek, stepFrame])
 
   return (
     <div className="app">
@@ -470,6 +516,11 @@ export default function App() {
           src={videoSrc}
           videoRef={videoRef}
           activeCue={activeCue}
+          currentTime={currentTime}
+          seek={seek}
+          stepFrame={stepFrame}
+          frameStep={frameStep}
+          onFrameStepChange={setFrameStep}
           onTime={setCurrentTime}
           onError={handleVideoError}
           onLoadedMetadata={handleLoadedMetadata}
