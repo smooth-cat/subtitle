@@ -19,11 +19,14 @@
       "output": "release"
     },
     "files": [
-      "out/**"
+      "out/**",
+      "!out/harness/**"
     ],
     "mac": {
       "target": "dmg",
-      "category": "public.app-category.video"
+      "category": "public.app-category.video",
+      "icon": "resources/icon.png",
+      "identity": null
     }
   },
   "dependencies": {
