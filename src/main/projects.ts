@@ -72,3 +72,27 @@ function touchRecent(p: SubProject): void {
 export function listRecent(): RecentEntry[] {
   return readRecent()
 }
+
+// 删除最近打开记录；deleteProject 时连同对应字幕工程文件一起删除
+export function removeRecentEntry(id: string, deleteProject: boolean): void {
+  const list = readRecent().filter((e) => e.id !== id)
+  fs.writeFileSync(recentFile(), JSON.stringify(list, null, 2), 'utf8')
+  if (deleteProject) {
+    try {
+      fs.rmSync(projectFileFor(id), { force: true })
+    } catch {
+      // ignore
+    }
+  }
+}
+
+// 字幕工程文件信息（供删除确认弹窗展示）
+export function projectFileInfo(id: string): { path: string; exists: boolean; sizeBytes: number } {
+  const file = projectFileFor(id)
+  try {
+    const st = fs.statSync(file)
+    return { path: file, exists: st.isFile(), sizeBytes: st.isFile() ? st.size : 0 }
+  } catch {
+    return { path: file, exists: false, sizeBytes: 0 }
+  }
+}

@@ -12,7 +12,7 @@ import type {
 } from '../shared/types'
 import { DEFAULT_SETTINGS } from '../shared/types'
 import { cacheDir, loadSettings, saveSettings } from './settings'
-import { loadProject, projectIdForVideo, listRecent, saveProject } from './projects'
+import { loadProject, projectIdForVideo, listRecent, removeRecentEntry, projectFileInfo, saveProject } from './projects'
 import { resolveFfmpeg, resolveFfprobe, resolveWhisper } from './binaries'
 import { probeVideo, transcodePreview } from './ffmpeg'
 import { burnWithCss } from './cssBurn'
@@ -165,6 +165,15 @@ export function registerIpc(): void {
 
   ipcMain.handle('project:recent', async (): Promise<RecentEntry[]> => {
     return listRecent()
+  })
+
+  ipcMain.handle('project:removeRecent', async (_e, id: string, deleteProject: boolean) => {
+    removeRecentEntry(id, deleteProject)
+    return true
+  })
+
+  ipcMain.handle('project:fileInfo', async (_e, id: string) => {
+    return projectFileInfo(id)
   })
 
   // ─── 设置 / 模型 / 二进制 ────────────────────────────────────

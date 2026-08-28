@@ -34,6 +34,8 @@ export interface Api {
   loadForVideo(videoPath: string): Promise<{ project: SubProject | null }>
   saveProject(project: SubProject): Promise<boolean>
   recentProjects(): Promise<RecentEntry[]>
+  removeRecent(id: string, deleteProject: boolean): Promise<boolean>
+  projectFileInfo(id: string): Promise<{ path: string; exists: boolean; sizeBytes: number }>
 
   // 设置 / 模型 / 二进制
   getSettings(): Promise<Settings>

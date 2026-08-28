@@ -137,6 +137,16 @@ export default function App() {
     if (res) await openVideoPath(res.path)
   }, [openVideoPath])
 
+  // ─── 最近打开：删除记录（可选连字幕工程文件）──────────────────
+  const deleteRecent = useCallback(
+    async (id: string, deleteProject: boolean) => {
+      await api.removeRecent(id, deleteProject)
+      setRecents(await api.recentProjects())
+      toast(deleteProject ? '已删除最近记录与字幕工程文件' : '已从最近列表移除')
+    },
+    [toast]
+  )
+
   // ─── 拖拽（.gguf → 模型；视频 → 打开）────────────────────────
   useEffect(() => {
     const onDragOver = (e: DragEvent) => e.preventDefault()
@@ -438,8 +448,10 @@ export default function App() {
         modelStatus={modelStatus}
         transcribing={transcribing}
         recents={recents}
+        currentProjectId={project?.id}
         onOpenVideo={() => void openVideoDialog()}
         onOpenRecent={(p) => void openVideoPath(p)}
+        onDeleteRecent={(id, del) => void deleteRecent(id, del)}
         onTranscribe={startTranscribe}
         onExportSrt={() => void exportSrt()}
         onBurn={() => void burn()}

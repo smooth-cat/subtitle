@@ -20,6 +20,8 @@ const api: Api = {
   loadForVideo: (videoPath) => ipcRenderer.invoke('project:loadForVideo', videoPath),
   saveProject: (project) => ipcRenderer.invoke('project:save', project),
   recentProjects: () => ipcRenderer.invoke('project:recent'),
+  removeRecent: (id, deleteProject) => ipcRenderer.invoke('project:removeRecent', id, deleteProject),
+  projectFileInfo: (id) => ipcRenderer.invoke('project:fileInfo', id),
 
   getSettings: () => ipcRenderer.invoke('settings:get'),
   setSettings: (s) => ipcRenderer.invoke('settings:set', s),
