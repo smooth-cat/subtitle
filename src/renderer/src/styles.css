@@ -439,6 +439,86 @@ body {
   color: var(--warn);
 }
 
+.search-panel {
+  /* 面板位于滚动列表之外（.list-pane flex 列布局），自然固定在列表顶部 */
+  display: grid;
+  /* 两列等宽输入框 + 右侧控件列 */
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.search-input {
+  width: 100%;
+  min-width: 0;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 5px 26px 5px 8px;
+}
+
+.search-clear {
+  position: absolute;
+  right: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px;
+  border-radius: 50%;
+}
+
+.search-clear:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.search-count {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.search-tools,
+.search-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cue-check {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+/* 头部开关按钮激活态（搜索开关等） */
+.list-header .btn.toggled {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(79, 140, 255, 0.1);
+}
+
 .style-body {
   flex: 1;
   overflow-y: auto;
@@ -622,23 +702,71 @@ body {
   border-color: var(--err);
 }
 
-.cue-text {
-  width: 100%;
+.cue-text-wrap {
+  position: relative;
   background: var(--bg-3);
   border: 1px solid var(--border);
   border-radius: 6px;
+}
+
+/* 高亮层：与 textarea 完全相同的排版指标，匹配文本渲染 <mark> */
+.cue-text-highlight {
+  padding: 6px 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  font-family: inherit;
   color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-height: 48px;
+  pointer-events: none;
+}
+
+.cue-text-highlight mark {
+  background: rgba(255, 213, 79, 0.32);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* 当前匹配项：更醒目的橙色实底高亮 */
+.cue-text-highlight mark.current {
+  background: #ffa235;
+  color: #14151a;
+  font-weight: 600;
+}
+
+.cue-text {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none; /* 编辑时不加描边/光环，保持卡片原样式 */
+  color: transparent; /* 原生文字隐藏，由高亮层显示 */
+  caret-color: var(--text);
   font-size: 13px;
   line-height: 1.5;
   padding: 6px 8px;
-  resize: vertical;
-  min-height: 48px;
+  resize: none;
+  overflow: hidden;
   font-family: inherit;
 }
 
-.cue-text:focus {
-  outline: none;
+.cue-text::placeholder {
+  color: var(--text-dim);
+}
+
+.cue-text::selection {
+  background: rgba(79, 140, 255, 0.35);
+}
+
+/* 当前匹配的卡片：与播放位置（.active）一致的蓝色描边，激活样式统一为蓝色 */
+.cue-card.current {
   border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
 }
 
 .cue-meta {
